@@ -104,7 +104,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         ArrayList<NotificationDetails> scheduledNotifications = loadScheduledNotifications(context);
         for (NotificationDetails scheduledNotification : scheduledNotifications) {
             if (scheduledNotification.repeatInterval == null) {
-                scheduleNotification(context, scheduledNotification, false);
+                scheduleNotification(context, scheduledNotification);
             } else {
                 repeatNotification(context, scheduledNotification, false);
             }
@@ -232,7 +232,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         }
     }
 
-    private static void scheduleNotification(Context context, final NotificationDetails notificationDetails, Boolean updateScheduledNotificationsCache) {
+    private static void scheduleNotification(Context context, final NotificationDetails notificationDetails) {
         Gson gson = buildGson();
         String notificationDetailsJson = gson.toJson(notificationDetails);
         Intent notificationIntent = new Intent(context, ScheduledNotificationReceiver.class);
@@ -245,9 +245,15 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         } else {
             AlarmManagerCompat.setExact(alarmManager, AlarmManager.RTC_WAKEUP, notificationDetails.millisecondsSinceEpoch, pendingIntent);
         }
+    }
+
+    private static void scheduleNotifications(Context context, final List<NotificationDetails> notificationDetails, Boolean updateScheduledNotificationsCache) {
+        for (NotificationDetails details : notificationDetails) {
+            scheduleNotification(context, details);
+        }
 
         if (updateScheduledNotificationsCache) {
-            saveScheduledNotification(context, notificationDetails);
+            saveNotifications(context, notificationDetails);
         }
     }
 
@@ -306,15 +312,28 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void saveScheduledNotification(Context context, NotificationDetails notificationDetails) {
+        List<NotificationDetails> notifications = new ArrayList();
+        notifications.add(notificationDetails);
+
+        saveNotifications(context, notifications);
+    }
+
+    private static void saveNotifications(Context context, List<NotificationDetails> notificationDetails) {
         ArrayList<NotificationDetails> scheduledNotifications = loadScheduledNotifications(context);
         ArrayList<NotificationDetails> scheduledNotificationsToSave = new ArrayList<>();
+
+        List<Integer> ids = new ArrayList();
+        for (NotificationDetails d : notificationDetails) {
+            ids.add(d.id);
+        }
+
         for (NotificationDetails scheduledNotification : scheduledNotifications) {
-            if (scheduledNotification.id == notificationDetails.id) {
+            if (ids.contains(scheduledNotification.id)) {
                 continue;
             }
             scheduledNotificationsToSave.add(scheduledNotification);
         }
-        scheduledNotificationsToSave.add(notificationDetails);
+        scheduledNotificationsToSave.addAll(notificationDetails);
         saveScheduledNotifications(context, scheduledNotificationsToSave);
     }
 
@@ -725,10 +744,15 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private void schedule(MethodCall call, Result result) {
-        Map<String, Object> arguments = call.arguments();
-        NotificationDetails notificationDetails = extractNotificationDetails(result, arguments);
-        if (notificationDetails != null) {
-            scheduleNotification(registrar.context(), notificationDetails, true);
+        List<Map<String, Object>> arguments = call.arguments();
+
+        List<NotificationDetails> notificationDetails = new ArrayList();
+        for (Map<String, Object> m : arguments) {
+            notificationDetails.add(extractNotificationDetails(result, m));
+        }
+
+        if (notificationDetails != null && !notificationDetails.isEmpty()) {
+            scheduleNotifications(registrar.context(), notificationDetails, true);
             result.success(null);
         }
     }
