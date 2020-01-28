@@ -86,6 +86,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     private static final String NOTIFICATION_LAUNCHED_APP = "notificationLaunchedApp";
     private static final String INVALID_DRAWABLE_RESOURCE_ERROR_MESSAGE = "The resource %s could not be found. Please make sure it has been added as a drawable resource to your Android head project.";
     private static final String INVALID_RAW_RESOURCE_ERROR_MESSAGE = "The resource %s could not be found. Please make sure it has been added as a raw resource to your Android head project.";
+    private static final Gson GSON = buildGson();
     public static String NOTIFICATION_ID = "notification_id";
     public static String NOTIFICATION = "notification";
     public static String NOTIFICATION_DETAILS = "notificationDetails";
@@ -183,18 +184,16 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         SharedPreferences sharedPreferences = context.getSharedPreferences(SCHEDULED_NOTIFICATIONS, Context.MODE_PRIVATE);
         String json = sharedPreferences.getString(SCHEDULED_NOTIFICATIONS, null);
         if (json != null) {
-            Gson gson = buildGson();
             Type type = new TypeToken<ArrayList<NotificationDetails>>() {
             }.getType();
-            scheduledNotifications = gson.fromJson(json, type);
+            scheduledNotifications = GSON.fromJson(json, type);
         }
         return scheduledNotifications;
     }
 
 
     private static void saveScheduledNotifications(Context context, ArrayList<NotificationDetails> scheduledNotifications) {
-        Gson gson = buildGson();
-        String json = gson.toJson(scheduledNotifications);
+        String json = GSON.toJson(scheduledNotifications);
         SharedPreferences sharedPreferences = context.getSharedPreferences(SCHEDULED_NOTIFICATIONS, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(SCHEDULED_NOTIFICATIONS, json);
@@ -233,8 +232,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void scheduleNotification(Context context, final NotificationDetails notificationDetails) {
-        Gson gson = buildGson();
-        String notificationDetailsJson = gson.toJson(notificationDetails);
+        String notificationDetailsJson = GSON.toJson(notificationDetails);
         Intent notificationIntent = new Intent(context, ScheduledNotificationReceiver.class);
         notificationIntent.putExtra(NOTIFICATION_DETAILS, notificationDetailsJson);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, notificationDetails.id, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -258,8 +256,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
     }
 
     private static void repeatNotification(Context context, NotificationDetails notificationDetails, Boolean updateScheduledNotificationsCache) {
-        Gson gson = buildGson();
-        String notificationDetailsJson = gson.toJson(notificationDetails);
+        String notificationDetailsJson = GSON.toJson(notificationDetails);
         Intent notificationIntent = new Intent(context, ScheduledNotificationReceiver.class);
         notificationIntent.putExtra(NOTIFICATION_DETAILS, notificationDetailsJson);
         notificationIntent.putExtra(REPEAT, true);
