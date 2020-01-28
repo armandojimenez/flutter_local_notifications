@@ -245,14 +245,12 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         }
     }
 
-    private static void scheduleNotifications(Context context, final List<NotificationDetails> notificationDetails, Boolean updateScheduledNotificationsCache) {
+    private static void scheduleNotificationsAndUpdateCache(Context context, final List<NotificationDetails> notificationDetails) {
         for (NotificationDetails details : notificationDetails) {
             scheduleNotification(context, details);
         }
 
-        if (updateScheduledNotificationsCache) {
-            saveNotifications(context, notificationDetails);
-        }
+        saveNotifications(context, notificationDetails);
     }
 
     private static void repeatNotification(Context context, NotificationDetails notificationDetails, Boolean updateScheduledNotificationsCache) {
@@ -749,7 +747,7 @@ public class FlutterLocalNotificationsPlugin implements MethodCallHandler, Plugi
         }
 
         if (notificationDetails != null && !notificationDetails.isEmpty()) {
-            scheduleNotifications(registrar.context(), notificationDetails, true);
+            scheduleNotificationsAndUpdateCache(registrar.context(), notificationDetails);
             result.success(null);
         }
     }
